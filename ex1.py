@@ -1,3 +1,4 @@
+import os
 from datasets import load_dataset
 from transformers import AutoConfig, AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 
@@ -7,7 +8,7 @@ if __name__ == '__main__':
 
     pretrained_models = ['bert-base-uncased', 'roberta-base', 'google/electra-base-generator']
 
-    args = TrainingArguments(max_steps=2200)
+    args = TrainingArguments(max_steps=2200, output_dir=os.getcwd())
 
     for model_name in pretrained_models:
         print(model_name)
