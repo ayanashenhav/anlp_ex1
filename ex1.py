@@ -2,10 +2,12 @@ import os
 from datasets import load_dataset, DatasetDict
 from transformers import AutoConfig, AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments, \
     EvalPrediction
-import numpy as np
 import evaluate
+import numpy as np
+import pandas as pd
 import wandb
 import fire
+import time
 
 #~/.cache/huggingface/datasets/
 
@@ -26,6 +28,11 @@ def finetune_sst2_multiple(n_seeds: int = 3,
         predictions, labels = eval_pred
         predictions = np.argmax(predictions, axis=1)
         return metric.compute(predictions=predictions, references=labels)
+
+    training_stats = list()
+    train_time = 0
+    best_model_trainer = None
+    best_model_accuracy = 0
 
     for model_name in pretrained_models:
         print(model_name)
@@ -65,9 +72,47 @@ def finetune_sst2_multiple(n_seeds: int = 3,
                               eval_dataset=tokenized_datasets['validation'],
                               tokenizer=tokenizer, )
 
+            st_time = time.time()
             trainer.train()
+            train_time += time.time() - st_time
+
+            res = trainer.evaluate()
+            training_stats.append(dict(run_name=run_name,
+                                       model_name=model_name,
+                                       seed=seed,
+                                       eval_accuracy=res['eval_accuracy']))
+            # trainer.save_model(run_name)
+
+            if res['eval_accuracy'] > best_model_accuracy:
+                best_model_trainer = trainer
+                best_model_accuracy = res['eval_accuracy']
 
             wandb.finish()
+
+    df = pd.DataFrame(training_stats)
+
+    # best_model_run_name = df.iloc[df['eval_accuracy'].idxmax()]['run_name']
+    # model = AutoModelForSequenceClassification.from_pretrained(run_name)
+    # tokenizer = AutoTokenizer.from_pretrained(run_name)
+    print(f"best model: {best_model_trainer.args.output_dir}")
+    best_model_trainer.model.eval()
+    best_model_trainer.args.per_device_eval_batch_size = 1
+    st_time = time.time()
+    predictions = best_model_trainer.predict(tokenized_datasets['test'].remove_columns(['sentence', 'idx', 'label']))
+    predict_time = time.time() - st_time
+    predictions = np.argmax(predictions.predictions, axis=1)
+    with open('predictions.txt', 'w') as f:
+        for sample, pred in zip(dataset['test'], predictions):
+            f.write(f"{sample['sentence']}###{pred}\n")
+
+    mean = df.groupby('model_name')['eval_accuracy'].mean()
+    std = df.groupby('model_name')['eval_accuracy'].std()
+    with open("res.txt", 'w') as f:
+        for model_name in pretrained_models:
+            f.write(f"{model_name},{mean[model_name]} +- {std[model_name]}\n")
+        f.write("----\n")
+        f.write(f"train time,{train_time}\n")
+        f.write(f"predict time,{predict_time}\n")
 
 
 if __name__ == '__main__':

@@ -1,7 +1,8 @@
 datasets
 transformers
 accelerate
+evaluate
 wandb
 numpy
-evaluate
+pandas
 fire
