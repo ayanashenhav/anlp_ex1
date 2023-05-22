@@ -1,3 +1,7 @@
 datasets
 transformers
 accelerate
+wandb
+numpy
+evaluate
+fire
