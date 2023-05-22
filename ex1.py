@@ -72,9 +72,8 @@ def finetune_sst2_multiple(n_seeds: int = 3,
                               eval_dataset=tokenized_datasets['validation'],
                               tokenizer=tokenizer, )
 
-            st_time = time.time()
-            trainer.train()
-            train_time += time.time() - st_time
+            train_res = trainer.train()
+            train_time += train_res.metrics['train_runtime']
 
             res = trainer.evaluate()
             training_stats.append(dict(run_name=run_name,
@@ -97,9 +96,8 @@ def finetune_sst2_multiple(n_seeds: int = 3,
     print(f"best model: {best_model_trainer.args.output_dir}")
     best_model_trainer.model.eval()
     best_model_trainer.args.per_device_eval_batch_size = 1
-    st_time = time.time()
     predictions = best_model_trainer.predict(tokenized_datasets['test'].remove_columns(['sentence', 'idx', 'label']))
-    predict_time = time.time() - st_time
+    predict_time = predictions.metrics['test_runtime']
     predictions = np.argmax(predictions.predictions, axis=1)
     with open('predictions.txt', 'w') as f:
         for sample, pred in zip(dataset['test'], predictions):
