@@ -56,7 +56,7 @@ def finetune_sst2_multiple(n_seeds: int = 3,
             run_name = f"finetune_sst2_from_{model_name.replace('/', '_')}_seed_{seed}"
             print(run_name)
 
-            wandb.init(project='anlp_ex1_sentiment_analysis', entity='ayana-shenhav',
+            wandb.init(project='anlp_ex1_sentiment_analysis_full', entity='ayana-shenhav',
                        name=run_name, config={'model_name': model_name, 'seed': seed, },
                        reinit=True)
 
@@ -106,7 +106,7 @@ def finetune_sst2_multiple(n_seeds: int = 3,
     std = df.groupby('model_name')['eval_accuracy'].std()
     with open("res.txt", 'w') as f:
         for model_name in pretrained_models:
-            f.write(f"{model_name},{mean[model_name]} +- {std[model_name]}\n")
+            f.write(f"{model_name},{round(mean[model_name], 3)} +- {round(std[model_name], 3)}\n")
         f.write("----\n")
         f.write(f"train time,{train_time}\n")
         f.write(f"predict time,{predict_time}\n")
