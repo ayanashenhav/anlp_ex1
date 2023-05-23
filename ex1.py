@@ -9,7 +9,7 @@ import wandb
 import fire
 
 
-PRETRAINED_MODELS = ['bert-base-uncased', 'roberta-base', 'google/electra-base-generator']
+PRETRAINED_MODELS = ['google/electra-base-generator', 'bert-base-uncased',] # 'roberta-base', ]
 
 
 def finetune_sst2_multiple(n_seeds: int = 3,
@@ -21,8 +21,8 @@ def finetune_sst2_multiple(n_seeds: int = 3,
 
     training_stats = list()
     train_time = 0
-    best_model_trainer = None
     best_model_accuracy = 0
+    best_model_run_name = ""
 
     for model_name in PRETRAINED_MODELS:
         print(f"\n\n{model_name}\n\n")
@@ -61,20 +61,41 @@ def finetune_sst2_multiple(n_seeds: int = 3,
                                        model_name=model_name,
                                        seed=seed,
                                        eval_accuracy=res['eval_accuracy']))
-            # trainer.save_model(run_name)
 
             if res['eval_accuracy'] > best_model_accuracy:
-                best_model_trainer = trainer
                 best_model_accuracy = res['eval_accuracy']
+                best_model_run_name = trainer.args.run_name
+                trainer.save_model("best_model")
+                print(f"saved best model {trainer.args.run_name} in best_model dir, accuracy {res['eval_accuracy']}\n")
 
             wandb.finish()
+            print(training_stats)
 
     df = pd.DataFrame(training_stats)
+    print(df)
 
-    print(f"\n\nsave prediction for best model - {best_model_trainer.args.run_name}\n\n")
+    best_model_trainer = get_best_model_trainer(dataset)
+    print(f"\n\nsave prediction for best model - {best_model_run_name}\n\n")
     predict_time = save_predictions(best_model_trainer, tokenized_dataset)
 
     save_stats(df, predict_time, train_time)
+
+
+def get_best_model_trainer(dataset):
+    config = AutoConfig.from_pretrained('best_model')
+    tokenizer = AutoTokenizer.from_pretrained('best_model')
+    tokenized_dataset = tokenize(dataset, tokenizer)
+    model = AutoModelForSequenceClassification.from_pretrained('best_model', config=config, )
+    trainer = Trainer(model=model,
+                      args=TrainingArguments(output_dir=os.path.join(os.getcwd(), 'best_model'),
+                                             save_strategy='no',),
+                      compute_metrics=compute_metrics,
+                      train_dataset=tokenized_dataset['train'],
+                      eval_dataset=tokenized_dataset['validation'],
+                      tokenizer=tokenizer, )
+    res = trainer.evaluate()
+    print(f"best model eval accuracy {res['eval_accuracy']}")
+    return trainer
 
 
 def save_stats(df, predict_time, train_time):
