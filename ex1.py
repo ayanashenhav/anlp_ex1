@@ -9,7 +9,7 @@ import wandb
 import fire
 
 
-PRETRAINED_MODELS = ['google/electra-base-generator', 'bert-base-uncased',] # 'roberta-base', ]
+PRETRAINED_MODELS = ['bert-base-uncased', 'roberta-base', 'google/electra-base-generator']
 
 
 def finetune_sst2_multiple(n_seeds: int = 3,
@@ -38,7 +38,7 @@ def finetune_sst2_multiple(n_seeds: int = 3,
             run_name = f"finetune_sst2_from_{model_name.replace('/', '_')}_seed_{seed}"
             print(f"\n{run_name}\n")
 
-            wandb.init(project='anlp_ex1_sst2', entity='ayana-shenhav',
+            wandb.init(project='anlp_ex1_finetune_sst2', entity='ayana-shenhav',
                        name=run_name, config={'model_name': model_name, 'seed': seed, },
                        reinit=True)
 
