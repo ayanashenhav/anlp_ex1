@@ -5,7 +5,7 @@ from transformers import AutoConfig, AutoTokenizer, AutoModelForSequenceClassifi
 import evaluate
 import numpy as np
 import pandas as pd
-import wandb
+# import wandb
 import fire
 
 
@@ -38,13 +38,13 @@ def finetune_sst2_multiple(n_seeds: int = 3,
             run_name = f"finetune_sst2_from_{model_name.replace('/', '_')}_seed_{seed}"
             print(f"\n{run_name}\n")
 
-            wandb.init(project='anlp_ex1_finetune_sst2', entity='ayana-shenhav',
-                       name=run_name, config={'model_name': model_name, 'seed': seed, },
-                       reinit=True)
+            # wandb.init(project='anlp_ex1_finetune_sst2', entity='ayana-shenhav',
+            #            name=run_name, config={'model_name': model_name, 'seed': seed, },
+            #            reinit=True)
 
             trainer = Trainer(model=model,
                               args=TrainingArguments(output_dir=os.path.join(os.getcwd(), run_name),
-                                                     report_to='wandb',
+                                                     # report_to='wandb',
                                                      run_name=run_name,
                                                      save_strategy='no',
                                                      seed=seed,),
@@ -68,7 +68,7 @@ def finetune_sst2_multiple(n_seeds: int = 3,
                 trainer.save_model("best_model")
                 print(f"saved best model {trainer.args.run_name} in best_model dir, accuracy {res['eval_accuracy']}\n")
 
-            wandb.finish()
+            # wandb.finish()
             print(training_stats)
 
     df = pd.DataFrame(training_stats)
